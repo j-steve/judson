@@ -14,56 +14,67 @@ using SharpCompress.Archive;
 namespace Judson
 {
     public partial class JudsonMain : Form
-    {
+    { 
+
         public JudsonMain()
         {
             InitializeComponent();
         }
-
-        private void JudsonMain_Load(object sender, EventArgs e)
+         
+        private void button1_Click(object sender, EventArgs e)
         {
+
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 ExtractFile(openFileDialog1.FileName);
             }
         }
-
-
-        static string ExtractFile(string inputFile)
+         
+        private string ExtractFile(string inputFile)
         {
-            string outputPath;
+            string inputFolder = Path.GetDirectoryName(inputFile);
+            string outputPath = GetUniqueFilepath(Path.Combine(inputFolder, Path.GetFileNameWithoutExtension(inputFile)));
+
             using (IArchive zipfile = ArchiveFactory.Open(inputFile))
             {
-                string tempFolder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                progressBar1.Maximum = zipfile.Entries.Count();
                 foreach (IArchiveEntry entry in zipfile.Entries)
                 {
                     if (!entry.IsDirectory)
                     {
                         Console.WriteLine("     {0}", entry.FilePath);
-                        entry.WriteToDirectory(tempFolder, SharpCompress.Common.ExtractOptions.ExtractFullPath);
-                    }
-                }
 
-                string inputFolder = Path.GetDirectoryName(inputFile);
-                string[] files = Directory.GetFileSystemEntries(tempFolder, "*", SearchOption.TopDirectoryOnly);
-                if (files.Count() == 1)
-                {
-                    string onlyFile = files.Single();
-                    outputPath = GetUniqueFilepath(Path.Combine(inputFolder, Path.GetFileName(onlyFile)));
-                    Move(onlyFile, outputPath);
-                    Directory.Delete(tempFolder);
-                }
-                else
-                {
-                    outputPath = GetUniqueFilepath(Path.Combine(inputFolder, Path.GetFileNameWithoutExtension(inputFile)));
-                    Directory.Move(tempFolder, outputPath);
+                        lblStatus.Text = entry.FilePath;
+                        lblStatus.Update();
+                        lblSize.Text = String.Format("{0:#,0.00} MB", entry.Size / 1024.0 / 1024.0);
+                        lblSize.Update();
+
+                        entry.WriteToDirectory(outputPath, SharpCompress.Common.ExtractOptions.ExtractFullPath);
+                    }
+                    progressBar1.Value++;
                 }
             }
             return outputPath;
+            /*
+            string[] files = Directory.GetFileSystemEntries(tempFolder, "*", SearchOption.TopDirectoryOnly);
+            if (files.Count() == 1)
+            {
+                string onlyFile = files.Single();
+                outputPath = GetUniqueFilepath(Path.Combine(inputFolder, Path.GetFileName(onlyFile)));
+                MoveFileOrFolder(onlyFile, outputPath);
+                Directory.Delete(tempFolder);
+            }
+            else
+            {
+                outputPath = GetUniqueFilepath(Path.Combine(inputFolder, Path.GetFileNameWithoutExtension(inputFile)));
+                Directory.Move(tempFolder, outputPath);
+            }
+        }
+        return outputPath;*/
         }
 
 
-        public static void Move(string oldPath, string newPath)
+        public static void MoveFileOrFolder(string oldPath, string newPath)
         {
             if (File.Exists(oldPath)) { File.Move(oldPath, newPath); }
             else if (Directory.Exists(oldPath)) { Directory.Move(oldPath, newPath); }
@@ -186,6 +197,9 @@ namespace Judson
                     break;
             } 
         }
+
+         
+
 
     }
 }
